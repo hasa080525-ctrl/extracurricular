@@ -51,6 +51,16 @@ function submitApplyForm(){
     '희망 과목: ' + subject + '\n' +
     '남기신 말씀: ' + (message || '(없음)');
 
+  if(window.emailjs){
+    emailjs.send('service_ldp43b2', 'template_wnwb8ba', {
+      student_name: name,
+      phone: phone,
+      grade: grade,
+      subject: subject,
+      message: message || '(없음)'
+    }).catch(function(err){ console.error('EmailJS send failed:', err); });
+  }
+
   window.open('https://open.kakao.com/o/sOXeVnpi', '_blank', 'noopener');
 
   if(navigator.clipboard && navigator.clipboard.writeText){

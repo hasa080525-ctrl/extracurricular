@@ -1,8 +1,8 @@
 /*
  * Generates static landing pages under /areas/:
  *  - 1 hub page listing all 16 regions
- *  - 16 region pages x 6 grades (중1~고3) = 96 region-grade pages
- *  - ~230 district pages x 6 grades = ~1,380 district-grade pages
+ *  - 16 region pages x 12 grades (초1~고3) = 192 region-grade pages
+ *  - ~230 district pages x 12 grades = ~2,750 district-grade pages
  * Also (re)writes sitemap-areas.xml with every URL from this run.
  * Re-run this script (`node scripts/generate-areas.js`) whenever region/
  * grade copy needs to change - do not hand-edit the generated files.
@@ -38,9 +38,17 @@ const REGIONS = [
 
 // Genuine, differentiated copy per grade - matches the real curriculum
 // facts already used on index.html/curriculum.html (자유학기제, 상대평가
-// 첫 내신, 진로·융합선택과목, 성취평가제, 학생부종합전형). No fabricated
-// region-specific claims - only the region/district name changes per page.
+// 첫 내신, 진로·융합선택과목, 성취평가제, 학생부종합전형) plus the elementary
+// facts used on roadmap.html/index.html (초5 사교육 참여율 증가폭 최대,
+// korea.kr 2025-03-13 공식브리핑). No fabricated region-specific claims -
+// only the region/district name changes per page.
 const GRADES = {
+  elem1: { label: '초1', title: '학교 적응과 학습 습관 형성', body: '입학 초기에는 선행보다 매일 일정 시간 책상에 앉는 습관을 만드는 것이 더 중요한 시기입니다. 한글과 기초 연산을 무리 없이 다지며 학습 습관의 기초 체력을 준비합니다.', tags: ['학습 습관', '한글·기초연산', '입학 적응'] },
+  elem2: { label: '초2', title: '읽기·쓰기 자립과 연산 정확도', body: '혼자 읽고 쓰는 힘이 자리 잡는 시기로, 두 자리 수 연산의 정확도와 속도를 함께 끌어올립니다.', tags: ['읽기·쓰기 자립', '연산 정확도'] },
+  elem3: { label: '초3', title: '교과 학습 본격화, 어휘력 다지기', body: '국어·수학·사회·과학 등 과목이 세분화되는 시기입니다. 어휘력과 곱셈·나눗셈 개념을 탄탄히 다져 이후 학년의 서술형 문제에 대비합니다.', tags: ['교과 세분화', '어휘력', '곱셈·나눗셈'] },
+  elem4: { label: '초4', title: '분수·소수와 서술형 대비', body: '분수·소수 등 추상적 개념이 등장하고 서술형 문항 비중이 늘어나는 시기입니다. 개념을 말로 설명할 수 있는지 확인하며 학습 결손을 조기에 잡습니다.', tags: ['분수·소수', '서술형 대비'] },
+  elem5: { label: '초5', title: '사교육 참여가 늘어나는 전환점', body: '교육부 공식 통계상 사교육 참여율 증가폭이 전 학년 중 가장 큰 시기로 꼽힙니다. 도형·비율 등 수학 개념 확장과 함께 영어 문법 학습을 시작합니다.', tags: ['수학 개념 확장', '영어 문법 시작'] },
+  elem6: { label: '초6', title: '중등 대비, 결손 없는 마무리', body: '초등 6년을 총정리하며 중등 수학의 기초를 점검하는 시기입니다. 무리한 선행보다 결손 없는 마무리가 우선이며, 중1 자유학기제 이후 첫 내신을 대비하는 습관을 함께 준비합니다.', tags: ['중등 대비', '결손 없는 마무리'] },
   mid1: { label: '중1', title: '자유학기제 활용, 기초 개념 다지기', body: '자유학기제로 지필시험 부담이 없는 학기를 활용해, 중등 교과의 기초 개념을 여유 있게 다지는 시기입니다.', tags: ['자유학기제 활용', '기초 개념', '학습 습관'] },
   mid2: { label: '중2', title: '첫 내신 시작, 시험 대비 습관 잡기', body: '자유학기제가 끝나고 본격적으로 지필고사가 시작되는 시기로, 과목별 시험 대비 습관을 처음부터 바르게 잡는 것이 중요합니다.', tags: ['첫 내신', '시험 대비 습관', '과목별 학습법'] },
   mid3: { label: '중3', title: '고교 대비, 고교학점제 구조 이해', body: '고등학교 입학을 앞두고 고교학점제 과목 체계를 미리 이해하고, 진로 방향을 함께 탐색하는 시기입니다.', tags: ['고교학점제 이해', '진로 탐색', '고교 대비'] },
@@ -61,6 +69,7 @@ function topicParticle(name) {
   if (code < 0 || code > 11171) return '은';
   return code % 28 === 0 ? '는' : '은';
 }
+function isElem(grade) { return grade.label.charAt(0) === '초'; }
 
 function regionSlug(region, grade) { return `${region.name}-${grade.label}과외`; }
 function districtSlug(region, district, grade) { return `${region.name}-${baseName(district)}-${grade.label}과외`; }
@@ -121,10 +130,15 @@ function faqMini() {
 }
 
 function regionPageTemplate(region, grade) {
+  const elem = isElem(grade);
   const title = `${region.name} ${grade.label}과외 | 1등급만들기`;
-  const desc = `${region.name} 지역 ${grade.label} 학생을 위한 고교학점제 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`;
+  const desc = elem
+    ? `${region.name} 지역 ${grade.label} 학생을 위한 1:1 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`
+    : `${region.name} 지역 ${grade.label} 학생을 위한 고교학점제 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`;
   const canonical = `${SITE}/areas/${encodeURIComponent(regionSlug(region, grade))}.html`;
-  const keywords = `${region.name}${grade.label}과외, ${region.name} ${grade.label} 과외, ${grade.label}과외, ${region.name} 고교학점제, ${region.name} 중고등과외`;
+  const keywords = elem
+    ? `${region.name}${grade.label}과외, ${region.name} ${grade.label} 과외, ${grade.label}과외, ${region.name} 초등과외, ${region.name} 초등 방문과외`
+    : `${region.name}${grade.label}과외, ${region.name} ${grade.label} 과외, ${grade.label}과외, ${region.name} 고교학점제, ${region.name} 중고등과외`;
   const otherGrades = GRADE_LIST.filter(g => g.label !== grade.label)
     .map(g => `<a href="/areas/${encodeURIComponent(regionSlug(region, g))}.html">${region.name} ${g.label}과외</a>`).join('\n        ');
   const districtLinks = region.districts.length
@@ -142,7 +156,7 @@ ${header()}
 <section class="subpage-hero" style="padding:44px 0;">
   <div class="wrap">
     <h1>${esc(region.name)} ${esc(grade.label)}과외</h1>
-    <p>1등급만들기가 ${esc(region.name)} 지역 ${esc(grade.label)} 학생을 위한 고교학점제 맞춤과외를 안내합니다.</p>
+    <p>1등급만들기가 ${esc(region.name)} 지역 ${esc(grade.label)} 학생을 위한 ${elem ? '1:1 맞춤과외' : '고교학점제 맞춤과외'}를 안내합니다.</p>
   </div>
 </section>
 <section>
@@ -184,12 +198,17 @@ ${footer()}
 }
 
 function districtPageTemplate(region, district, grade) {
+  const elem = isElem(grade);
   const district_ = baseName(district);
   const title = `${region.name} ${district_} ${grade.label}과외 | 1등급만들기`;
-  const desc = `${region.name} ${district_} 지역 ${grade.label} 학생을 위한 고교학점제 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`;
+  const desc = elem
+    ? `${region.name} ${district_} 지역 ${grade.label} 학생을 위한 1:1 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`
+    : `${region.name} ${district_} 지역 ${grade.label} 학생을 위한 고교학점제 맞춤과외 안내. ${grade.title} 시기에 맞춰 지도합니다.`;
   const canonical = `${SITE}/areas/${encodeURIComponent(districtSlug(region, district, grade))}.html`;
   const parentUrl = `/areas/${encodeURIComponent(regionSlug(region, grade))}.html`;
-  const keywords = `${district_}${grade.label}과외, ${district_} ${grade.label} 과외, ${region.name}${district_}과외, ${grade.label}과외, ${district_} 고교학점제`;
+  const keywords = elem
+    ? `${district_}${grade.label}과외, ${district_} ${grade.label} 과외, ${region.name}${district_}과외, ${grade.label}과외, ${district_} 초등과외`
+    : `${district_}${grade.label}과외, ${district_} ${grade.label} 과외, ${region.name}${district_}과외, ${grade.label}과외, ${district_} 고교학점제`;
   const hasSub = /\(.*\)$/.test(district);
   const subNote = hasSub ? district.match(/\((.*)\)$/)[1] : '';
 
@@ -204,7 +223,7 @@ ${header()}
 <section class="subpage-hero" style="padding:44px 0;">
   <div class="wrap">
     <h1>${esc(district_)} ${esc(grade.label)}과외</h1>
-    <p>1등급만들기가 ${esc(district_)} 지역 ${esc(grade.label)} 학생을 위한 고교학점제 맞춤과외를 안내합니다.</p>
+    <p>1등급만들기가 ${esc(district_)} 지역 ${esc(grade.label)} 학생을 위한 ${elem ? '1:1 맞춤과외' : '고교학점제 맞춤과외'}를 안내합니다.</p>
   </div>
 </section>
 <section>
@@ -248,7 +267,7 @@ function hubTemplate() {
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
-${head('전국 지역별 과외 전체 목록 | 1등급만들기', '전국 16개 광역지자체, 시/군/구, 중1~고3 학년별 1등급만들기 고교학점제 과외 안내 페이지 모음입니다.', `${SITE}/areas/`, '전국 중고등 과외, 지역별 고교학점제 과외, 학년별 과외')}
+${head('전국 지역별 과외 전체 목록 | 1등급만들기', '전국 16개 광역지자체, 시/군/구, 초1~고3 학년별 1등급만들기 초중고 과외 안내 페이지 모음입니다.', `${SITE}/areas/`, '전국 초중고 과외, 지역별 고교학점제 과외, 지방 초등과외, 학년별 과외')}
 </head>
 <body>
 ${header()}
@@ -256,7 +275,7 @@ ${header()}
 <section class="subpage-hero" style="padding:44px 0;">
   <div class="wrap">
     <h1>전국 지역별 과외 전체 목록</h1>
-    <p>전국 16개 광역지자체, 시/군/구, 중1~고3 학년별로 안내 페이지를 정리했습니다.</p>
+    <p>전국 16개 광역지자체, 시/군/구, 초1~고3 학년별로 안내 페이지를 정리했습니다. 특목고·학원이 가까이 없는 지방·읍면 지역도 서울과 동일한 커리큘럼으로 화상 수업을 받을 수 있습니다.</p>
   </div>
 </section>
 <section>

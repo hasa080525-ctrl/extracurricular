@@ -61,6 +61,11 @@ function submitApplyForm(){
     }).catch(function(err){ console.error('EmailJS send failed:', err); });
   }
 
+  fetch('https://script.google.com/macros/s/AKfycbwOqTTLkqZ_frFyT6N0QcjYZT3jsG0puhq9wRmrQSPxhFgn0fXET3AoGVj4PiHMNHcg/exec', {
+    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ site: '1등급만들기', name: name, phone: phone, grade: grade, subject: subject, message: message || '(없음)' })
+  }).catch(function(err){ console.error('구글시트 전송 실패:', err); });
+
   window.open('https://open.kakao.com/o/sOXeVnpi', '_blank', 'noopener');
 
   if(navigator.clipboard && navigator.clipboard.writeText){

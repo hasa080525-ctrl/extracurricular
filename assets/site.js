@@ -66,11 +66,9 @@ function submitApplyForm(){
     body: JSON.stringify({ site: '1등급만들기', name: name, phone: phone, grade: grade, subject: subject, message: message || '(없음)' })
   }).catch(function(err){ console.error('구글시트 전송 실패:', err); });
 
-  window.open('https://open.kakao.com/o/sOXeVnpi', '_blank', 'noopener');
-
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(summary).then(function(){
-      alert('신청 내용이 복사되었습니다.\n곧 열리는(또는 열린) 카카오톡 채팅창에 붙여넣기(꾹 눌러서 붙여넣기) 해주세요!');
+      alert('신청 내용이 복사되었습니다.\n카카오톡 오픈채팅에 붙여넣기(꾹 눌러서 붙여넣기) 해주세요!');
     }).catch(function(){
       alert('아래 오픈채팅에서 다음 내용으로 신청해주세요:\n\n' + summary);
     });
